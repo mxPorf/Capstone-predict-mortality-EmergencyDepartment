@@ -22,6 +22,13 @@ logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
+def model_fn(model_dir):
+    '''
+    Retrieves a pretrained PyTorch Tabular model from s3
+    '''
+    # path=os.path.join(model_dir, "model.pth")
+    return TabularModel.load_model(model_dir)
+
 def load_data(prefix='data', file='cleaned_data.csv'):
     '''
     Loads pre-processed data from an S3 bucket
@@ -35,6 +42,9 @@ def load_data(prefix='data', file='cleaned_data.csv'):
     data = body.read().decode('utf-8')
     df = pd.read_csv(StringIO(data))
     return df
+
+
+
 
 def main(args):
     logger.info(f'Hyperparameters are LR: {args.learning_rate}, Batch Size: {args.batch_size}')
