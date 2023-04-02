@@ -26,19 +26,35 @@ def model_fn(model_dir):
     '''
     Retrieves a pretrained PyTorch Tabular model from s3
     '''
+    # import torch
     # path=os.path.join(model_dir, "model.pth")
+    # key=os.path.join('model','model.pth')
+    # model_object = retrieve_s3_object(key)
+    # with open('model.pth', 'w') as f:
+    #     f.write(model_object.read().decode('utf-8'))
+    # model = torch.load('model.pth')
     return TabularModel.load_model(model_dir)
+    # return model
+
+def upload_to_s3(file_name, s3_prefix):
+    client = boto3.client('s3')
+    object_name=os.path.join(s3_prefix, file_name)
+    try:
+        response = client.upload_file(file_name, S3_BUCKET_NAME, object_name)
+    except ClientError as e:
+        print(e)
+        
+def retrieve_s3_object(key):
+    client = boto3.client('s3')
+    response = client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
+    return response['Body']
 
 def load_data(prefix='data', file='cleaned_data.csv'):
     '''
     Loads pre-processed data from an S3 bucket
     '''
     key=os.path.join(prefix,file)
-    
-    client = boto3.client('s3')
-    response = client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
-    body=response['Body']
-
+    body = retrieve_s3_object(key)
     data = body.read().decode('utf-8')
     df = pd.read_csv(StringIO(data))
     return df
@@ -92,14 +108,21 @@ def main(args):
     pred_df = tabular_model.predict(val_cases)
     ################################
     total_acc = accuracy_score(data_test['deceased'],pred_df['prediction'])
-    
     logger.info(f"Testing Accuracy: {total_acc}")
     ##################################
     #Save the model
     logger.info("Saving Model")
-    save_path = os.path.join(args.model_dir, "model.pth")
-    tabular_model.save_model_for_inference(save_path, kind='pytorch')
+    # save_path = os.path.join(args.model_dir, "model.pth")
+    # tabular_model.save_model(args.model_dir, kind='pytorch')
+    tabular_model.save_model(args.model_dir)
     
+    # upload_to_s3("model.pth", s3_prefix='model')
+    
+    #############################
+    ############################
+    #  FOR TESTS
+    # retreived_model = model_fn('output')
+    # print(retreived_model.evaluate())
     
     
 
