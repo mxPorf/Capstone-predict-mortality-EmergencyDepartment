@@ -1,1 +1,2 @@
-pytorch-tabular==1.0.1
+lightgbm==3.3.5
+joblib==1.2.0
