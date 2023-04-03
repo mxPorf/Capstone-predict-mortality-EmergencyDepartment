@@ -24,15 +24,13 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 def model_fn(model_dir):
-    '''
-    '''
+    logger.info('In model fn')
     file = os.path.join(model_dir, 'model.joblib')
     model = load(file)
     return model
     
 def predict_fn(input_object, model):
     logger.info('In predict fn')
-    logger.info(f'Input object: {input_object}')
     prediction = model.predict(input_object)
     prediction = argmax(prediction, axis=1)
     return prediction
@@ -92,6 +90,12 @@ def main(args):
     save_path = os.path.join(args.model_dir, "model.joblib")
     dump(model, save_path)
     
+    if args.test:
+        model_test=model_fn(args.model_dir)
+        predictions = predict_fn(x_test, model_test)
+        print(f'acc: {accuracy_score(y_test, y_pred)}')
+        
+    
     
 
 if __name__=='__main__':
@@ -101,6 +105,7 @@ if __name__=='__main__':
     parser.add_argument('--early_stopping_rounds', type=int)
     parser.add_argument('--num_leaves', type=int)
     parser.add_argument('--max_depth', type=int)
+    parser.add_argument('--test', type=int, default=0)
     parser.add_argument('--data', type=str, default=os.environ['SM_CHANNEL_TRAINING'])
     parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--output_dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
