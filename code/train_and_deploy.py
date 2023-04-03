@@ -6,6 +6,8 @@ import os
 import logging
 import sys
 
+import torch
+
 from pytorch_tabular import TabularModel
 from pytorch_tabular.models import CategoryEmbeddingModelConfig
 from pytorch_tabular.config import DataConfig, OptimizerConfig, TrainerConfig, ExperimentConfig
@@ -27,22 +29,29 @@ def model_fn(model_dir):
     Retrieves a pretrained PyTorch Tabular model from s3
     '''
     # import torch
-    # path=os.path.join(model_dir, "model.pth")
+    path=os.path.join(model_dir, "model.pth")
     # key=os.path.join('model','model.pth')
     # model_object = retrieve_s3_object(key)
     # with open('model.pth', 'w') as f:
     #     f.write(model_object.read().decode('utf-8'))
     # model = torch.load('model.pth')
-    return TabularModel.load_model(model_dir)
+    logger.info('In model fn')
+    logger.info(f'Complete path: {path}')
+    model = torch.load(path)
+    return model
+    # return TabularModel.load_model(model_dir)
     # return model
-
-def upload_to_s3(file_name, s3_prefix):
-    client = boto3.client('s3')
-    object_name=os.path.join(s3_prefix, file_name)
-    try:
-        response = client.upload_file(file_name, S3_BUCKET_NAME, object_name)
-    except ClientError as e:
-        print(e)
+    
+def predict_fn(input_object, model):
+    logger.info('In predict fn')
+    logger.info(f'Input object: {input_object}')
+    # with torch.no_grad():
+    #     logger.info("Calling model")
+    #     prediction = model(input_object.unsqueeze(0))
+    # return prediction
+    # tensors = torch.tensor(input_object)
+    prediction = model.predict(input_object)
+    return prediction
         
 def retrieve_s3_object(key):
     client = boto3.client('s3')
@@ -58,9 +67,6 @@ def load_data(prefix='data', file='cleaned_data.csv'):
     data = body.read().decode('utf-8')
     df = pd.read_csv(StringIO(data))
     return df
-
-
-
 
 def main(args):
     logger.info(f'Hyperparameters are LR: {args.learning_rate}, Batch Size: {args.batch_size}')
@@ -112,17 +118,30 @@ def main(args):
     ##################################
     #Save the model
     logger.info("Saving Model")
-    # save_path = os.path.join(args.model_dir, "model.pth")
-    # tabular_model.save_model(args.model_dir, kind='pytorch')
-    tabular_model.save_model(args.model_dir)
+    save_path = os.path.join(args.model_dir, "model.pth")
+    tabular_model.save_model_for_inference(save_path, kind='pytorch')
+    # tabular_model.save_model(args.model_dir)
     
-    # upload_to_s3("model.pth", s3_prefix='model')
     
     #############################
     ############################
     #  FOR TESTS
-    # retreived_model = model_fn('output')
-    # print(retreived_model.evaluate())
+#     tabular_model.save_model(args.model_dir)
+#     retreived_model = model_fn(args.model_dir)
+    
+#     test_sample = df.sample()
+#     response = retreived_model.predict(test_sample)
+#     print(f'The correct label was: {test_sample[deceased]}. The predicted label was:{response}')
+    
+    
+    # endpoint_test = retreived_model.predict(val_cases)
+    # print('endpoint test')
+    # print(accuracy_score(data_test['deceased'],endpoint_test['prediction']))
+    
+    # retreived_model = model_fn(args.model_dir)
+    # test_sample = df.sample()
+    # tensors = torch.tensor(test_sample.to_numpy())
+    # prediction = retreived_model.predict(tensors)
     
     
 
